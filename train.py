@@ -1,5 +1,5 @@
 # ===============================
-# EXP-02: Ridge Regression + Standardization
+# EXP-03: Ridge Regression (Stronger Regularization)
 # ===============================
 
 import pandas as pd
@@ -37,9 +37,9 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # -------------------------------
-# 5. Train model
+# 5. Train model (STRONGER REGULARIZATION)
 # -------------------------------
-model = Ridge(alpha=1.0)
+model = Ridge(alpha=10.0)
 model.fit(X_train, y_train)
 
 # -------------------------------
@@ -50,7 +50,7 @@ y_pred = model.predict(X_test)
 mse = mean_squared_error(y_test, y_pred)
 r2 = r2_score(y_test, y_pred)
 
-print("EXP-02: Ridge Regression + Standardization")
+print("EXP-03: Ridge Regression (alpha = 10.0)")
 print("MSE:", mse)
 print("R2 Score:", r2)
 
@@ -62,9 +62,9 @@ os.makedirs("output", exist_ok=True)
 joblib.dump(model, "output/model.pkl")
 
 results = {
-    "Experiment": "EXP-02",
+    "Experiment": "EXP-03",
     "Model": "Ridge Regression",
-    "Alpha": 1.0,
+    "Alpha": 10.0,
     "Preprocessing": "Standardization",
     "MSE": mse,
     "R2_Score": r2
