@@ -1,5 +1,5 @@
 # ===============================
-# EXP-07: Random Forest Regressor (Deeper Trees)
+# EXP-08: Random Forest + Correlation-based Feature Selection
 # ===============================
 
 import pandas as pd
@@ -17,10 +17,17 @@ from sklearn.metrics import mean_squared_error, r2_score
 data = pd.read_csv("dataset/winequality-red.csv", sep=";")
 
 # -------------------------------
-# 2. Define features and target
+# 2. Correlation-based Feature Selection
 # -------------------------------
-X = data.drop("quality", axis=1)
+correlation = data.corr()["quality"].abs()
+
+selected_features = correlation[correlation > 0.2].index.tolist()
+selected_features.remove("quality")
+
+X = data[selected_features]
 y = data["quality"]
+
+print("Selected Features:", selected_features)
 
 # -------------------------------
 # 3. Train-test split (80/20)
@@ -30,7 +37,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # -------------------------------
-# 4. Train model (Random Forest – Deeper Trees)
+# 4. Train model (Random Forest)
 # -------------------------------
 model = RandomForestRegressor(
     n_estimators=100,
@@ -48,7 +55,7 @@ y_pred = model.predict(X_test)
 mse = mean_squared_error(y_test, y_pred)
 r2 = r2_score(y_test, y_pred)
 
-print("EXP-07: Random Forest Regressor (100 Trees, Depth 15)")
+print("EXP-08: Random Forest + Feature Selection")
 print("MSE:", mse)
 print("R2 Score:", r2)
 
@@ -60,10 +67,12 @@ os.makedirs("output", exist_ok=True)
 joblib.dump(model, "output/model.pkl")
 
 results = {
-    "Experiment": "EXP-07",
+    "Experiment": "EXP-08",
     "Model": "Random Forest Regressor",
     "Trees": 100,
     "Max Depth": 15,
+    "Feature Selection": "Correlation-based (> 0.2)",
+    "Selected Features": selected_features,
     "Train/Test Split": "80/20",
     "MSE": mse,
     "R2_Score": r2
