@@ -1,5 +1,5 @@
 # ===============================
-# EXP-03: Ridge Regression (Stronger Regularization)
+# EXP-04: Linear Regression (70/30 Split)
 # ===============================
 
 import pandas as pd
@@ -8,8 +8,7 @@ import os
 import joblib
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 
 # -------------------------------
@@ -24,48 +23,41 @@ X = data.drop("quality", axis=1)
 y = data["quality"]
 
 # -------------------------------
-# 3. Standardization
-# -------------------------------
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
-# -------------------------------
-# 4. Train-test split (80/20)
+# 3. Train-test split (70/30)
 # -------------------------------
 X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y, test_size=0.2, random_state=42
+    X, y, test_size=0.3, random_state=42
 )
 
 # -------------------------------
-# 5. Train model (STRONGER REGULARIZATION)
+# 4. Train model
 # -------------------------------
-model = Ridge(alpha=10.0)
+model = LinearRegression()
 model.fit(X_train, y_train)
 
 # -------------------------------
-# 6. Evaluation
+# 5. Evaluation
 # -------------------------------
 y_pred = model.predict(X_test)
 
 mse = mean_squared_error(y_test, y_pred)
 r2 = r2_score(y_test, y_pred)
 
-print("EXP-03: Ridge Regression (alpha = 10.0)")
+print("EXP-04: Linear Regression (70/30 Split)")
 print("MSE:", mse)
 print("R2 Score:", r2)
 
 # -------------------------------
-# 7. Save outputs
+# 6. Save outputs
 # -------------------------------
 os.makedirs("output", exist_ok=True)
 
 joblib.dump(model, "output/model.pkl")
 
 results = {
-    "Experiment": "EXP-03",
-    "Model": "Ridge Regression",
-    "Alpha": 10.0,
-    "Preprocessing": "Standardization",
+    "Experiment": "EXP-04",
+    "Model": "Linear Regression",
+    "Train/Test Split": "70/30",
     "MSE": mse,
     "R2_Score": r2
 }
