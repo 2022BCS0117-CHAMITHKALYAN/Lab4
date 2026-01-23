@@ -90,17 +90,4 @@ jobs:
       run: |
         docker push ${{ secrets.DOCKER_USERNAME }}/wine-infer:${{ github.run_number }}
 
-    - name: Update BEST_F1 variable
-      if: success()
-      uses: actions/github-script@v6
-      with:
-        github-token: ${{ secrets.GH_PAT }}
-        script: |
-          const name = 'BEST_F1';
-          const value = '${{ steps.readmetric.outputs.f1 }}';
-          await github.request('PUT /repos/{owner}/{repo}/actions/variables/{name}', {
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            name,
-            value
-          });
+    
