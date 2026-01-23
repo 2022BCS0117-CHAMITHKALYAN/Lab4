@@ -8,8 +8,6 @@ jobs:
   train:
     name: Train model and upload artifacts
     runs-on: ubuntu-latest
-    outputs:
-      artifact-name: exp-01-artifacts
 
     steps:
     - name: Checkout repository
@@ -47,7 +45,6 @@ jobs:
     name: Deploy if metric improves
     needs: train
     runs-on: ubuntu-latest
-    if: always()   # we'll handle metric decision inside the job
 
     steps:
     - name: Checkout repository
@@ -59,59 +56,56 @@ jobs:
         name: exp-01-artifacts
         path: output
 
-    - name: Read metrics JSON and set outputs
+    - name: Read metrics.json
       id: metrics
       run: |
-        python - <<'PY'
-import json,sys
-m = json.load(open("output/metrics.json"))
-f1 = m.get("f1", 0)
-mse = m.get("mse", 9999)
-print(f"::set-output name=f1::{f1}")
-print(f"::set-output name=mse::{mse}")
-PY
+        F1=$(python -c "import json; print(json.load(open('output/metrics.json'))['f1'])")
+        MSE=$(python -c "import json; print(json.load(open('output/metrics.json'))['mse'])")
+        echo "f1=$F1" >> $GITHUB_OUTPUT
+        echo "mse=$MSE" >> $GITHUB_OUTPUT
 
-    - name: Check improvement against repo variable BEST_F1
+    - name: Compare with BEST_F1
       id: compare
       run: |
         echo "Current F1 = ${{ steps.metrics.outputs.f1 }}"
-        echo "Repo BEST_F1 = ${{ vars.BEST_F1 }}"
-        python - <<'PY'
-import os,sys
-cur = float(os.getenv('GITHUB_STEP_SUMMARY', '0')) if False else float("${{ steps.metrics.outputs.f1 }}")
+        echo "Best F1 = ${{ vars.BEST_F1 }}"
+
+        python - <<EOF
+import sys
+
+current = float("${{ steps.metrics.outputs.f1 }}")
 best = float("${{ vars.BEST_F1 }}")
-if cur <= best:
-    print("METRIC_NOT_IMPROVED")
-    sys.exit(78)  # custom non-zero code; we'll exit early (but job will still be marked completed)
+
+if current <= best:
+    print("Metric did NOT improve")
+    sys.exit(1)
 else:
-    print("METRIC_IMPROVED")
-PY
-      # Note: exit 78 means we stop this job early but set it to failed; we prefer to gracefully skip below
-      # (we use exit code 78 to indicate no improvement - the workflow will still complete; keep reading below)
+    print("Metric improved")
+EOF
 
     - name: Login to Docker Hub
-      if: ${{ always() && steps.compare.conclusion == 'success' }}
+      if: ${{ success() }}
       run: |
         echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
     - name: Build Docker image
-      if: ${{ always() && steps.compare.conclusion == 'success' }}
+      if: ${{ success() }}
       run: |
         docker build -t ${{ secrets.DOCKER_USERNAME }}/wine-infer:${{ github.run_number }} .
 
     - name: Push Docker image
-      if: ${{ always() && steps.compare.conclusion == 'success' }}
+      if: ${{ success() }}
       run: |
         docker push ${{ secrets.DOCKER_USERNAME }}/wine-infer:${{ github.run_number }}
 
-    - name: Update BEST_F1 repo variable via API
-      if: ${{ always() && steps.compare.conclusion == 'success' }}
+    - name: Update BEST_F1 variable
+      if: ${{ success() }}
       uses: actions/github-script@v6
       with:
         github-token: ${{ secrets.GH_PAT }}
         script: |
           const name = 'BEST_F1';
-          const value = `${{ steps.metrics.outputs.f1 }}`;
+          const value = '${{ steps.metrics.outputs.f1 }}';
           await github.request('PUT /repos/{owner}/{repo}/actions/variables/{name}', {
             owner: context.repo.owner,
             repo: context.repo.repo,
